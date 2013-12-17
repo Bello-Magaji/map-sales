@@ -66,7 +66,7 @@ public class proxy : IHttpHandler
             authenticationReq.ServicePoint.Expect100Continue = false;
 
             string postData =
-                "referer=" + config.applicationURL +
+                "referer=" + config.applicationURL.url +
                 "&username=" + config.username +
                 "&password=" + config.password +
                 "&expiration=" + config.tokenDurationMinutes.ToString() +
@@ -128,21 +128,22 @@ public class proxy : IHttpHandler
             authExpiration = expiresDate.ToShortDateString() + " " + expiresDate.ToShortTimeString() + " UTC";
         }
 
-
         // Check that the application's server matches the config file
-        string applicationURL = originalRequest.Url.Scheme + "://" + originalRequest.Url.Host;
-        string[] segs = originalRequest.Url.Segments;
-        for(int i = 0; i < (segs.Length - 1); ++i)
+        string requestingAppURL = originalRequest.Url.ToString().ToLower();
+        string configAppURL = config.applicationURL.url.ToLower();
+        bool ok = requestingAppURL.StartsWith(configAppURL);
+
+        // If we are permitted to ignore the "www." at the beginning of the URL, see if the application URL matches
+        // when the "www." is removed from the two URLs. We'll include the "http*" so that only a "www" at the beginning
+        // will match.
+        if (!ok && config.applicationURL.canIgnoreWWW)
         {
-            applicationURL += segs[i];
+            string altRequestingAppURL = requestingAppURL.Replace("http://www.", "http://").Replace("https://www.", "https://");
+            string altconfigAppURL = configAppURL.Replace("http://www.", "http://").Replace("https://www.", "https://");
+            ok = altRequestingAppURL.StartsWith(altconfigAppURL);
         }
-        applicationURL = applicationURL.ToLower();
-        if(applicationURL.EndsWith("/")) applicationURL = applicationURL.Substring(0, applicationURL.Length - 1);
 
-        string configAppURL = config.applicationURL.ToLower();
-        if (configAppURL.EndsWith("/")) configAppURL = configAppURL.Substring(0, configAppURL.Length - 1);
-
-        if (applicationURL != configAppURL)
+        if (!ok)
         {
             response.StatusCode = 500;
             response.StatusDescription = "Unsupported application URL";
@@ -372,7 +373,7 @@ public class ProxyConfig
 
 
     [XmlElement("applicationURL")]
-    public string applicationURL;
+    public AppURL applicationURL;
 
     [XmlElement("authenticationUrl")]
     public string authenticationUrl;
@@ -388,6 +389,21 @@ public class ProxyConfig
 
     [XmlElement("tokenDurationMinutes")]
     public int tokenDurationMinutes;
+}
+
+//============================================================================================================================//
+
+/// <summary>
+/// Represents the application part of the config file so that we can include an attribute.
+/// </summary>
+[XmlRoot("AppURL")]
+public class AppURL
+{
+    [XmlAttribute]
+    public bool canIgnoreWWW;  // defaults to false
+
+    [XmlText]
+    public string url;
 }
 
 //============================================================================================================================//
