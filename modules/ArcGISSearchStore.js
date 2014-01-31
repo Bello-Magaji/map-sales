@@ -19,6 +19,7 @@ define(["dojo/_base/declare", "dojo/store/util/SimpleQueryEngine"], function (de
         _groupId: "",
         _webmapViewer: null,
         _amendedResults: null,
+        _screen: ",Code Attachment,",
 
         /**
          * Constructs the ArcGISSearchStore object.
@@ -107,9 +108,14 @@ define(["dojo/_base/declare", "dojo/store/util/SimpleQueryEngine"], function (de
             var pThis = this, items = [];
 
             if(data.results){
-                items = data.results;
+                dojo.forEach(data.results, function(item) {
+                    // Are we screening unwanted items?
+                    if (pThis._screen) {
+                        if (pThis._screen.indexOf("," + item["type"] + ",") >= 0) {
+                            return;
+                        }
+                    }
 
-                dojo.forEach(items, function(item) {
                     // Get the URLs to the thumbnail and its original image
                     var imageFilename = item["thumbnail"];
                     if(imageFilename) {
@@ -133,6 +139,9 @@ define(["dojo/_base/declare", "dojo/store/util/SimpleQueryEngine"], function (de
                             }
                         }
                     }
+
+                    // Add the item to the gallery
+                    items.push(item);
                 });
             }
             return items;
