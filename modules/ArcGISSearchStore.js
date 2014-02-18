@@ -120,9 +120,13 @@ define(["dojo/_base/declare", "dojo/store/util/SimpleQueryEngine"], function (de
                     var imageFilename = item["thumbnail"];
                     if(imageFilename) {
                         item["thumbnail"] = "proxy.ashx?" + "http://www.arcgis.com/sharing/content/items/" + item["id"] + "/info/" + imageFilename;
-                        var filenamePieces = imageFilename.split(".");
-                        imageFilename = filenamePieces[0] + "_orig." + filenamePieces[1];
-                        item["fullsize"] = "proxy.ashx?" + "http://www.arcgis.com/sharing/content/items/" + item["id"] + "/info/" + imageFilename;
+                        var iExt = imageFilename.lastIndexOf(".");
+                        if (iExt >= 0) {
+                            imageFilename = imageFilename.substring(0, iExt) + "_orig" + imageFilename.substr(iExt);
+                            item["fullsize"] = "proxy.ashx?" + "http://www.arcgis.com/sharing/content/items/" + item["id"] + "/info/" + imageFilename;
+                        } else {
+                            item["fullsize"] = "graphics/missingThumbnail.png";
+                        }
                     } else {
                         item["thumbnail"] = "graphics/missingThumbnail.png";
                         item["fullsize"] = "graphics/missingThumbnail.png";
